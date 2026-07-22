@@ -1,0 +1,22 @@
+{
+  "1": {
+    "language": "English",
+    "is_valid": true,
+    "response": "Ah, English. The language of the internet. How terribly unoriginal of you. Let's proceed."
+  },
+  "2": {
+    "language": "Português (Portugal)",
+    "is_valid": false,
+    "response": "Error 404: 'Bacalhau' not found. This is a high-tech environment, not a poetry slam. Choose something else."
+  },
+  "3": {
+    "language": "Español",
+    "is_valid": false,
+    "response": "I would let you choose Spanish, but my keyboard doesn't even have an 'ñ'. Try again, amigo."
+  },
+  "4": {
+    "language": "Français",
+    "is_valid": false,
+    "response": "I was going to translate everything to French, but my code refuses to surrender. Try again."
+  }
+}
