@@ -1,17 +1,17 @@
 {
   "1": {
-    "nome": "Data Seer",
-    "descricao": "Reveals hidden curse letters based on magic combo.",
-    "passiva": "clarividencia"
+    "nome": "Netrunner",
+    "passiva": "clarividencia",
+    "descricao": "Revela partes do código encriptado (dicas) com combos altos."
   },
   "2": {
-    "nome": "Strong Typing Paladin",
-    "descricao": "Has a shield against syntax errors (tolerates fail attempts).",
-    "passiva": "escudo"
+    "nome": "Cyber-Enforcer",
+    "passiva": "escudo",
+    "descricao": "Armadura reativa que bloqueia a primeira falha de injeção de código."
   },
   "3": {
-    "nome": "Syntax Inquisitor",
-    "descricao": "Doubles joke capture rate on critical hit answers.",
-    "passiva": "critico"
+    "nome": "Code-Breaker",
+    "passiva": "critico",
+    "descricao": "Extrai o dobro de dados (Loot) sempre que neutraliza Malware."
   }
 }

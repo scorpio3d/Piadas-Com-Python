@@ -1,27 +1,26 @@
-import sys
 import time
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import track
 
-def texto_animado(texto, velocidade=0.02):
-    """Prints text letter by letter for a RPG retro terminal feel."""
-    for letra in texto:
-        sys.stdout.write(letra)
-        sys.stdout.flush()
-        time.sleep(velocidade)
-    print()
+# Objeto global para renderização com estilo no terminal
+console = Console()
 
-def barra_carregamento(descricao="Casting spell", passos=15, tempo=0.03):
-    """Simulates a magic/loading progress bar."""
-    print(f"\n{descricao}:")
-    for i in range(passos + 1):
-        percentual = (i / passos) * 100
-        barra = "█" * i + "-" * (passos - i)
-        sys.stdout.write(f"\r[{barra}] {percentual:.0f}%")
-        sys.stdout.flush()
+def texto_animado(texto, velocidade=0.02, cor="white"):
+    """Escreve texto no terminal com estilo e cor usando o Rich."""
+    console.print(f"[{cor}]{texto}[/{cor}]")
+
+def barra_carregamento(descricao="A conjurar feitiço", passos=15, tempo=0.03):
+    """Barra de progresso visual fluida e moderna."""
+    for _ in track(range(passos), description=f"[bold magenta]{descricao}...[/bold magenta]"):
         time.sleep(tempo)
-    print("\n")
 
-def exibir_cabecalho(titulo):
-    """Displays formatted ASCII headers."""
-    print("=" * 60)
-    print(f" 🔥 {titulo.upper()} 🔥".center(60))
-    print("=" * 60)
+def exibir_cabecalho(titulo, cor="bold red"):
+    """Cria um painel visual destacado para os menus e batalhas."""
+    painel = Panel(
+        f"🔥 {titulo.upper()} 🔥", 
+        expand=False, 
+        border_style=cor,
+        padding=(0, 2)
+    )
+    console.print(painel)

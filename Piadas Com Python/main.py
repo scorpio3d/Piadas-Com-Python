@@ -3,6 +3,8 @@ import json
 import re
 import sqlite3
 import time
+import random
+from rich.console import Console
 
 from modules.motor_api import ColetorDePiadas
 from modules.personagem import Personagem
@@ -10,171 +12,235 @@ from modules.analise_dados import AnalisadorDeDados
 from modules.ia_sarcastica import IASarcastica
 from modules.utils import texto_animado, barra_carregamento, exibir_cabecalho
 
-# Flags de Estado Global
+console = Console()
 sistema_bloqueado = True
 
 def menu_troll():
-    """Ritual de seleção de idioma obriga a escolher Inglês."""
-    exibir_cabecalho("RITUAL DE IDIOMAS DO SISTEMA")
+    """Protocolo de seleção de idioma do sistema."""
+    exibir_cabecalho("PROTOCOLO DE LINGUAGEM DO SISTEMA", cor="bold yellow")
     try:
         with open("data/menu_troll.json", "r", encoding="utf-8") as f:
             opcoes_idioma = json.load(f)
     except Exception:
-        print("[SISTEMA]: Erro ao carregar menu_troll.json. Continuando em Inglês por defeito.")
+        console.print("[bold red][SISTEMA]: Erro ao carregar pacotes de linguagem. Continuando em Inglês.[/bold red]")
         return
 
     while True:
-        print("\nEscolha o idioma do terminal / Select system language:")
+        console.print("\nSelecione o idioma da interface / Select interface language:")
         for key, val in opcoes_idioma.items():
-            print(f"{key}. {val['language']}")
+            console.print(f"[cyan]{key}.[/cyan] {val['language']}")
         
-        escolha = input("\n> Opção: ").strip()
+        escolha = input("\n> Input: ").strip()
         if escolha in opcoes_idioma:
             resposta = opcoes_idioma[escolha]
-            print(f"\n{resposta['response']}")
+            console.print(f"\n[yellow]{resposta['response']}[/yellow]")
             if resposta["is_valid"]:
                 time.sleep(1)
                 break
         else:
-            print("\n[ERRO]: Opção inválida!")
+            console.print("\n[bold red][ERRO]: Syntax_Error. Opção não reconhecida![/bold red]")
 
 def criar_personagem():
-    """Invocação e criação da classe do jogador."""
-    exibir_cabecalho("CRIAÇÃO DE PERSONAGEM")
-    print("Classes Disponíveis:")
-    print("1. Data Seer (Revela dicas com combos altos)")
-    print("2. Strong Typing Paladin (Tolera erros de Regex)")
-    print("3. Syntax Inquisitor (Ganha o dobro de loot nas vitórias)")
+    """Registo do Operador no Sistema."""
+    exibir_cabecalho("REGISTO DE OPERADOR", cor="bold cyan")
+    console.print("Perfis de Operador Disponíveis:")
+    console.print("1. [bold magenta]Netrunner[/bold magenta] (Infiltração de dados e bypass de firewalls)")
+    console.print("2. [bold blue]Cyber-Enforcer[/bold blue] (Blindagem ICE contra erros críticos)")
+    console.print("3. [bold red]Code-Breaker[/bold red] (Extração maximizada de pacotes de dados)")
     
-    escolha = input("\nEscolha a sua classe (1-3): ").strip()
+    escolha = input("\nDefina o seu perfil (1-3): ").strip()
     jogador = Personagem(classe_id=escolha)
-    print(f"\n✨ Classe selecionada: {jogador.classe_nome}!")
+    console.print(f"\n✨ Perfil carregado: [bold green]{jogador.classe_nome}[/bold green]!")
     return jogador
 
 def batalha_purificacao(jogador, motor, ia):
-    """Mecânica de purificação de aldeões usando Expressões Regulares (Regex)."""
-    exibir_cabecalho("BATALHA DE PURIFICAÇÃO (REGEX)")
-    
+    """Mecânica de Múltipla Escolha com Honeypots (Armadilhas Black ICE - 15%)."""
+    exibir_cabecalho("OVERRIDE DE SISTEMA", cor="bold red")
+
+    eh_trap = random.random() < 0.15
+
     try:
         con = sqlite3.connect("data/piadas.db")
         cursor = con.cursor()
+
         cursor.execute("SELECT id, setup, punchline FROM piadas WHERE dificuldade = 'NORMAL' ORDER BY RANDOM() LIMIT 1")
-        piada = cursor.fetchone()
-        con.close()
+        piada_certa = cursor.fetchone()
+
+        if not piada_certa:
+            console.print("\n[yellow][REDE]: Nenhum nó de dados infetado no momento. Aguarde o scan![/yellow]")
+            con.close()
+            return
+
+        piada_id, setup, punchline_correta = piada_certa
+
+        if eh_trap:
+            cursor.execute("SELECT punchline FROM piadas WHERE id != ? ORDER BY RANDOM() LIMIT 4", (piada_id,))
+            opcoes = [row[0] for row in cursor.fetchall()]
+            con.close()
+
+            opcoes_genericas = [
+                "Error 404: Packet lost in transmission.",
+                "SyntaxError: Invalid payload structure.",
+                "NullPointer: Memory address restricted.",
+                "Segmentation Fault: Triggered by Rogue AI."
+            ]
+            while len(opcoes) < 4:
+                opcoes.append(opcoes_genericas.pop())
+
+            random.shuffle(opcoes)
+        else:
+            cursor.execute("SELECT punchline FROM piadas WHERE id != ? ORDER BY RANDOM() LIMIT 3", (piada_id,))
+            distratores = [row[0] for row in cursor.fetchall()]
+            con.close()
+
+            opcoes_genericas = [
+                "Error 404: Packet not found.",
+                "SyntaxError: invalid query syntax.",
+                "NullPointerException on data stream."
+            ]
+            while len(distratores) < 3:
+                distratores.append(opcoes_genericas.pop())
+
+            opcoes = [punchline_correta] + distratores
+            random.shuffle(opcoes)
+
     except Exception as e:
-        print(f"[ERRO SQLITE]: {e}")
+        console.print(f"[bold red][ERRO BASE DE DADOS]: {e}[/bold red]")
         return
 
-    if not piada:
-        print("[SISTEMA]: Nenhuma vítima infetada no momento. Aguarde a praga espalhar-se!")
-        return
+    if eh_trap:
+        console.print(f"\n👁️ [bold purple][HONEYPOT DETETADO - NÓ #{piada_id}]:[/bold purple] \"{setup}\"")
+    else:
+        console.print(f"\n[bold green][NÓ CORROMPIDO #{piada_id}]:[/bold green] \"{setup}\"")
 
-    piada_id, setup, punchline = piada
-    print(f"\n[ALDEÃO INFETADO #{piada_id}]: \"{setup}\"")
+    console.print("\nQual é a chave de desencriptação correta para limpar o Malware?")
+    for idx, opcao in enumerate(opcoes, 1):
+        console.print(f"  [cyan]{idx}.[/cyan] {opcao}")
     
-    # Dica Passiva da Classe Data Seer
-    if jogador.passiva == "clarividencia" and jogador.combo > 1:
-        dica = punchline[:jogador.combo * 2] + "..."
-        print(f"🔮 [DICA DO VIDENTE]: O punchline começa por: '{dica}'")
+    console.print("  [bold yellow]5. ⚠️ CANCELAR SESSÃO! (É uma armadilha Black ICE!)[/bold yellow]")
 
-    palpite = input("\nLança o teu feitiço de Regex/Palavra para purificar: ").strip()
-    
-    if not palpite:
-        print("[ERRO]: Tentativa cancelada.")
+    if jogador.passiva == "clarividencia" and jogador.combo > 0:
+        if eh_trap:
+            console.print("\n🔮 [bold magenta][SCAN DO NETRUNNER]: Os pacotes de dados estão mascarados... Isto é uma Armadilha![/bold magenta]")
+        else:
+            dica = punchline_correta[:4]
+            console.print(f"\n🔮 [bold magenta][SCAN DO NETRUNNER]: A chave começa com os bytes: '{dica}...'[/bold magenta]")
+
+    escolha = input("\nInjetar comando (1-5): ").strip()
+
+    if escolha not in ["1", "2", "3", "4", "5"]:
+        console.print("\n[bold red]❌ Syntax Error! Injeção falhou.[/bold red]")
         return
 
-    # Validação de Expressão Regular (Regex)
-    try:
-        match = re.search(re.escape(palpite), punchline, re.IGNORECASE)
-        if match:
-            jogador.combo += 1
-            motor.aumentar_taxa(1)
-            barra_carregamento("Purificando código corrompido", passos=10)
-            print(f"✨ ÉS UM SUCESSO! Purificaste o punchline: '{punchline}'")
-            print(ia.reagir_sucesso())
-            
-            # Bónus da Classe Inquisidor
-            if jogador.passiva == "critico":
-                jogador.combo += 1
-                
+    if escolha == "5":
+        if eh_trap:
+            jogador.combo += 2
+            motor.aumentar_taxa(2)
+            barra_carregamento("A contornar Black ICE", passos=12)
+            console.print("\n✨ [bold green]CRÍTICO! Bypass efetuado com sucesso à armadilha da Rogue AI.[/bold green]")
+            console.print(f"[bold red]{ia.reagir_sucesso()}[/bold red]")
+
             loot = jogador.ganhar_loot()
             if loot:
-                print(f"🎁 LOOT OBTIDO: Ganhaste [{loot['nome']}]! Guardado no SQLite.")
+                console.print(f"🎁 [bold gold1]DADOS EXTRAÍDOS: Obtiveste [{loot['nome']}]! Guardado no SQLite.[/bold gold1]")
         else:
-            if jogador.passiva == "escudo" and input("🛡️ Desejas usar a tua aura de Paladino para absorver a falha? (s/n): ").lower() == 's':
-                print("[PALADINO]: Dano absorvido! Combo mantido.")
+            jogador.combo = 0
+            motor.penalizar_taxa(1)
+            console.print("\n❌ [bold red]PARANOIA DE SISTEMA! O Nó era legítimo e cortaste a ligação à toa.[/bold red]")
+            console.print(f"[bold red]{ia.reagir_falha()}[/bold red]")
+
+    else:
+        if eh_trap:
+            jogador.combo = 0
+            motor.penalizar_taxa(1)
+            console.print("\n❌ [bold red]SISTEMA COMPROMETIDO! Caíste num Honeypot e ativaste o Black ICE da Rogue AI![/bold red]")
+            console.print(f"[bold red]{ia.reagir_falha()}[/bold red]")
+        else:
+            opcao_escolhida = opcoes[int(escolha) - 1]
+            pattern = re.escape(punchline_correta)
+
+            if re.search(pattern, opcao_escolhida, re.IGNORECASE):
+                jogador.combo += 1
+                motor.aumentar_taxa(1)
+                barra_carregamento("A compilar chave de desencriptação", passos=10)
+                console.print("\n✨ [bold green]OVERRIDE SUCESSO! Nó de dados purgado do Malware![/bold green]")
+                console.print(f"[bold green]{ia.reagir_sucesso()}[/bold green]")
+
+                if jogador.passiva == "critico":
+                    jogador.combo += 1
+
+                loot = jogador.ganhar_loot()
+                if loot:
+                    console.print(f"🎁 [bold yellow]DADOS EXTRAÍDOS: Obtiveste [{loot['nome']}]! Guardado no SQLite.[/bold yellow]")
             else:
-                jogador.combo = 0
-                motor.penalizar_taxa(1)
-                print(f"❌ FALHASTES! O feitiço ricocheteou. Resposta certa era: '{punchline}'")
-                print(ia.reagir_falha())
-    except Exception as e:
-        print(f"[ERRO REGEX]: {e}")
+                if jogador.passiva == "escudo" and input("\n🛡️ Ativar Blindagem ICE para absorver o feedback negativo? (s/n): ").lower() == 's':
+                    console.print("\n[bold blue][CYBER-ENFORCER]: Sobrecarga bloqueada! Ligação mantida.[/bold blue]")
+                else:
+                    jogador.combo = 0
+                    motor.penalizar_taxa(1)
+                    console.print(f"\n❌ [bold red]FALHA DE INJEÇÃO! A chave correta era: '{punchline_correta}'[/bold red]")
+                    console.print(f"[bold red]{ia.reagir_falha()}[/bold red]")
 
 def gerir_inventario(jogador):
-    """Menu de gestão do inventário com operações CRUD em SQLite."""
-    exibir_cabecalho("MOCHILA DO HERÓI (SQLITE CRUD)")
+    """Menu de gestão do inventário/drive local."""
+    exibir_cabecalho("DRIVE LOCAL DO OPERADOR (SQLITE CRUD)", cor="bold green")
     itens = jogador.ver_inventario()
     
     if not itens:
-        print("\nA tua mochila está vazia! Vence batalhas para obter poções e artefactos.")
+        console.print("\n[yellow]A tua drive local está vazia. Infiltra-te em nós para extrair scripts.[/yellow]")
         return
 
-    print("\nItens no teu Inventário:")
+    console.print("\nScripts e Fragmentos Guardados:")
     for item in itens:
         item_id, nome, desc, buff, debuff, qtd = item
-        print(f"ID #{item_id} | {nome} (x{qtd}) - {desc}")
-        print(f"   🟢 Buff: {buff} | 🔴 Debuff: {debuff}")
+        console.print(f"[bold cyan]ID #{item_id}[/bold cyan] | [bold white]{nome}[/bold white] (x{qtd}) - {desc}")
+        console.print(f"   🟢 Overclock: {buff} | 🔴 Memory Leak: {debuff}")
 
-    op = input("\nIntroduz o ID do item a consumir (ou ENTER para sair): ").strip()
+    op = input("\nIntroduz o ID do script a executar (ou ENTER para sair): ").strip()
     if op.isdigit():
         if jogador.consumir_item(int(op)):
-            print("\n🧪 Item consumido com sucesso do SQLite!")
+            console.print("\n🧪 [bold green]Script executado e apagado da base de dados![/bold green]")
         else:
-            print("\n❌ Item não encontrado.")
+            console.print("\n❌ [bold red]Endereço de memória não encontrado.[/bold red]")
 
 def main():
     global sistema_bloqueado
     
-    # 1. Menu Troll de Idiomas
     menu_troll()
-    
-    # 2. Criação do Herói e Módulos
     jogador = criar_personagem()
     motor = ColetorDePiadas()
     analisador = AnalisadorDeDados()
     ia = IASarcastica()
     
-    # 3. Disparar a Thread em background
     motor.iniciar_recolha_background()
-    print("\n[ALERTA DE SISTEMA]: A Thread de background do Fred foi ativada!")
+    console.print("\n[bold magenta][ALERTA]: O Processo Fantasma da Rogue AI infiltrou-se no Background![/bold magenta]")
     
-    # 4. Loop Principal
     while True:
-        status_sis = "🔴 BLOQUEADO (Anomalia Ativa)" if sistema_bloqueado else "🟢 DESBLOQUEADO"
-        exibir_cabecalho("TAVERNA DOS INQUISIDORES DE PYTHON")
-        print(f"Herói: {jogador.classe_nome} | Combo: {jogador.combo} | Status: {status_sis}")
-        print("-" * 60)
-        print("1. 🔮 Feitiço de Vidência (Gerar Gráfico Pandas/Matplotlib)")
-        print("2. 💥 Destruir Covil da Entidade (Introduzir ID da Anomalia)")
-        print("3. ⚔️ Purificar Aldeão Infetado (Batalha Regex)")
-        print("4. 🎒 Mochila & Inventário (Consultar/Consumir Itens)")
-        print("5. 🚪 Fugir do Reino (Sair)")
+        status_sis = "[bold red]🔴 FIREWALL ATIVA (Acesso Negado)[/bold red]" if sistema_bloqueado else "[bold green]🟢 ROOT ACCESS CONCEDIDO[/bold green]"
         
-        opcao = input("\nQual é o teu comando? ").strip()
+        exibir_cabecalho("TERMINAL CYBER-DECK UPLINK", cor="bold yellow")
+        console.print(f"👨‍💻 [bold cyan]Operador:[/bold cyan] {jogador.classe_nome} | ⚡ [bold yellow]Sync-Combo:[/bold yellow] {jogador.combo} | 🛡️ [bold white]Segurança:[/bold white] {status_sis}")
+        console.print("[dim]" + "-" * 60 + "[/dim]")
+        
+        console.print("1. 🔓 Scan de Rede (Gerar Radar Pandas de Anomalias)")
+        console.print("2. 🔑 Bypass de Kernel (Inserir ID da Anomalia Crítica)")
+        console.print("3. ⚔️ Debug de Nó Corrompido (Batalha Regex)")
+        console.print("4. 💾 Drive Local & Scripts (Consultar Banco de Dados)")
+        console.print("5. 🚪 Desconectar da Matrix (Sair)")
+        
+        opcao = input("\nInput do Operador: ").strip()
         
         if opcao == "1":
             analisador.gerar_relatorio_grafico("anomaly_map.png")
-            print("📜 [RADAR]: Consulta o ficheiro 'anomaly_map.png' criado na raiz do projeto!")
         
         elif opcao == "2":
-            id_input = input("\nIntroduz o ID da anomalia identificada no gráfico: ").strip()
+            id_input = input("\nIntroduza o Root ID da anomalia crítica: ").strip()
             if analisador.destruir_covil_anomalia(id_input):
                 sistema_bloqueado = False
         
         elif opcao == "3":
             if sistema_bloqueado:
-                print("\n⛔ SISTEMA BLOQUEADO! Tens de gerar o gráfico (Opção 1) e destruir o Covil (Opção 2) primeiro!")
+                console.print("\n⛔ [bold red]ACESSO NEGADO! O ICE da Rogue AI está ativo. Corra o Scan (1) e faça Bypass ao Kernel (2) primeiro![/bold red]")
             else:
                 batalha_purificacao(jogador, motor, ia)
         
@@ -182,13 +248,13 @@ def main():
             gerir_inventario(jogador)
         
         elif opcao == "5":
-            texto_animado("\nA fugir do reino de Python... A praga continua a espalhar-se!", velocidade=0.01)
+            texto_animado("\nA apagar rastos de IP e a desconectar da Matrix... A rede continua corrompida!", velocidade=0.01, cor="bold red")
             sys.exit(0)
             
         else:
-            print("\nComando inválido! Escolha entre 1 e 5.")
+            console.print("\n[bold red]Syntax Error! Input inválido.[/bold red]")
         
-        input("\nPressiona ENTER para continuar...")
+        input("\nPressione ENTER para nova *query*...")
 
 if __name__ == "__main__":
     main()

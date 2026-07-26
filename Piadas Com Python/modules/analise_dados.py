@@ -1,107 +1,112 @@
 import sqlite3
 import pandas as pd
 import matplotlib.pyplot as plt
+from rich.console import Console
+from rich.table import Table
+
+console = Console()
 
 class AnalisadorDeDados:
-    """
-    Handles data analysis and visualization using Pandas and Matplotlib.
-    Generates the Dark Energy Radar to locate system anomalies (Entity Lair).
-    """
+    """Módulo responsável pela Análise de Dados (Pandas) e Relatórios Gráficos (Matplotlib + Rich)."""
+    
     def __init__(self, db_path="data/piadas.db"):
         self.db_path = db_path
 
     def gerar_relatorio_grafico(self, output_path="anomaly_map.png"):
-        """
-        Reads jokes from SQLite into a Pandas DataFrame, calculates corruption levels,
-        and generates a Matplotlib bar chart highlighting the entity anomaly in red.
-        """
+        """Gera o gráfico em PNG (Matplotlib) E imprime uma tabela visual no Terminal (Rich)."""
         try:
             con = sqlite3.connect(self.db_path)
-            query = "SELECT id, setup, punchline FROM piadas"
+            
+            # Query Pandas: Seleciona as 10 maiores entradas
+            query = """
+                SELECT id, (LENGTH(setup) + LENGTH(punchline)) AS tamanho
+                FROM piadas
+                ORDER BY tamanho DESC
+                LIMIT 10
+            """
             df = pd.read_sql_query(query, con)
             con.close()
 
             if df.empty:
-                print("[WARNING]: Database is empty. No graph generated.")
+                console.print("[yellow][RADAR]: A base de dados ainda não tem dados suficientes.[/yellow]")
                 return False
 
-            # Calculate total character length as "Corruption Level"
-            df['tamanho'] = df['setup'].str.len() + df['punchline'].str.len()
+            # --- 1. GERAR FICHEIRO PNG COM MATPLOTLIB (Para a Nota Académica) ---
+            df['id_label'] = "ID " + df['id'].astype(str)
+            plt.figure(figsize=(10, 5))
+            max_val = df['tamanho'].max()
+            colors = ['#ff4d4d' if val == max_val else '#4da6ff' for val in df['tamanho']]
 
-            # Set bar colors: Red for the anomaly (> 400 chars), Blue for normal jokes
-            cores = ['#d9534f' if length > 400 else '#0275d8' for length in df['tamanho']]
-
-            # Create plot
-            plt.figure(figsize=(10, 6))
-            bars = plt.bar(df['id'], df['tamanho'], color=cores, edgecolor='black', alpha=0.85)
-
-            plt.title("⚡ DARK ENERGY RADAR - ENTITY CORRUPTION MAP ⚡", fontsize=13, fontweight='bold', pad=15)
-            plt.xlabel("Soul ID (SQLite Row ID)", fontsize=11)
-            plt.ylabel("Corruption Level (Character Length)", fontsize=11)
+            bars = plt.bar(df['id_label'], df['tamanho'], color=colors, edgecolor='black')
+            plt.title("RADAR DE ANOMALIAS (Matplotlib Export)", fontsize=12, fontweight='bold')
+            plt.xlabel("ID do Registo")
+            plt.ylabel("Tamanho (Chars)")
             plt.grid(axis='y', linestyle='--', alpha=0.5)
-
-            # Save the chart as an image
             plt.tight_layout()
             plt.savefig(output_path, dpi=120)
             plt.close()
 
-            print(f"\n[RADAR]: Scan complete! Map generated and saved as '{output_path}'.")
+            # --- 2. DESENHAR TABELA COM BARRAS VISUAIS NO TERMINAL (Para UX) ---
+            tabela = Table(title="📡 RADAR DE ANOMALIAS DO TERMINAL (TOP 10 REGISTOS)", border_style="cyan")
+            tabela.add_column("ID", justify="center", style="bold yellow")
+            tabela.add_column("Tamanho", justify="right", style="bold white")
+            tabela.add_column("Visualizador de Código", style="magenta")
+            tabela.add_column("Status", justify="center")
+
+            # Fator de escala para a barra não quebrar o terminal
+            fator_escala = 30 / max_val if max_val > 0 else 1
+
+            for _, row in df.iterrows():
+                id_val = f"#{row['id']}"
+                tamanho = row['tamanho']
+                num_blocos = int(tamanho * fator_escala)
+                
+                # Se for a anomalia (o maior valor)
+                if tamanho == max_val and tamanho > 200:
+                    barra_visual = "█" * max(num_blocos, 1)
+                    status = "[bold red]🚨 ANOMALIA CRÍTICA[/bold red]"
+                    estilo_barra = f"[bold red]{barra_visual}[/bold red]"
+                else:
+                    barra_visual = "■" * max(num_blocos, 1)
+                    status = "[green]Normal[/green]"
+                    estilo_barra = f"[cyan]{barra_visual}[/cyan]"
+
+                tabela.add_row(id_val, f"{tamanho} chars", estilo_barra, status)
+
+            console.print("\n")
+            console.print(tabela)
+            console.print(f"[dim]📁 [Ficheiro 'anomaly_map.png' gerado silenciosamente na raiz para avaliação][/dim]\n")
             return True
 
         except Exception as e:
-            print(f"[ERROR]: Failed to generate visual report: {e}")
+            console.print(f"[bold red][ERRO ANALISE DADOS]: {e}[/bold red]")
             return False
 
-    def obter_id_anomalia(self):
-        """
-        Identifies the SQLite ID of the entity anomaly (character length > 400).
-        """
+    def destruir_covil_anomalia(self, id_anomalia):
+        """Purga a anomalia identificada pelo jogador na base de dados SQLite."""
+        if not str(id_anomalia).isdigit():
+            console.print("\n❌ [bold red]ID inválido! Introduza apenas números.[/bold red]")
+            return False
+
         try:
             con = sqlite3.connect(self.db_path)
-            query = "SELECT id, setup, punchline FROM piadas"
-            df = pd.read_sql_query(query, con)
-            con.close()
+            cursor = con.cursor()
+            
+            cursor.execute("SELECT setup FROM piadas WHERE id = ?", (id_anomalia,))
+            res = cursor.fetchone()
 
-            if df.empty:
-                return None
-
-            df['tamanho'] = df['setup'].str.len() + df['punchline'].str.len()
-            anomalia = df[df['tamanho'] > 400]
-
-            if not anomalia.empty:
-                return int(anomalia.iloc[0]['id'])
-            return None
-
-        except Exception as e:
-            print(f"[ERROR]: Failed to locate anomaly ID: {e}")
-            return None
-
-    def destruir_covil_anomalia(self, id_palpite):
-        """
-        Validates player input. If correct, purges the anomaly record from SQLite
-        and unlocks the main spellcasting terminal.
-        """
-        id_real = self.obter_id_anomalia()
-
-        if id_real is None:
-            print("[RADAR]: No active anomaly detected. System is already UNLOCKED!")
-            return True
-
-        try:
-            if int(id_palpite) == id_real:
-                con = sqlite3.connect(self.db_path)
-                cursor = con.cursor()
-                cursor.execute("DELETE FROM piadas WHERE id = ?", (id_real,))
+            if res and "SYSTEM_CORRUPTION" in res[0]:
+                cursor.execute("DELETE FROM piadas WHERE id = ?", (id_anomalia,))
                 con.commit()
                 con.close()
-                print(f"\n✨ [SUCCESS]: Entity Lair at ID #{id_real} destroyed! System UNLOCKED!")
+                console.print(f"\n💥 [bold green][SUCESSO]: Covil da Entidade (ID #{id_anomalia}) purgado do SQLite![/bold green]")
+                console.print("🟢 [bold green]SISTEMA DESBLOQUEADO! O acesso às Batalhas foi liberado.[/bold green]")
                 return True
             else:
-                print(f"\n❌ [FAIL]: Incorrect ID! The Entity shield deflected your spell.")
+                con.close()
+                console.print(f"\n❌ [bold red][FALHA]: O ID #{id_anomalia} não é o Covil do Boss! Analisa o radar novamente.[/bold red]")
                 return False
-        except ValueError:
-            print("\n❌ [ERROR]: Invalid input! Enter a numeric ID.")
-            return False
+
         except sqlite3.Error as e:
-            print(f"[SQLITE ERROR]: Failed to purge anomaly: {e}")
+            console.print(f"[bold red][ERRO SQLITE]: {e}[/bold red]")
             return False
