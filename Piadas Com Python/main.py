@@ -1,199 +1,194 @@
 import sys
-import time
+import json
 import re
 import sqlite3
-import os
-import json
+import time
 
-# Importação dos nossos módulos personalizados
-from modules.ia_sarcastica import AdversarioAI
 from modules.motor_api import ColetorDePiadas
+from modules.personagem import Personagem
+from modules.analise_dados import AnalisadorDeDados
+from modules.ia_sarcastica import IASarcastica
+from modules.utils import texto_animado, barra_carregamento, exibir_cabecalho
 
-def barra_carregamento(mensagem="A processar", segundos=3):
-    """
-    Gera uma barra de loading animada no terminal.
-    Usa sys.stdout e '\r' para reescrever a linha dinâmica.
-    """
-    tamanho_barra = 40
-    print() 
-    
-    for i in range(tamanho_barra + 1):
-        percentagem = int(100 * (i / tamanho_barra))
-        preenchido = '█' * i
-        vazio = '-' * (tamanho_barra - i)
-        
-        sys.stdout.write(f'\r[SYSTEM] {mensagem}... [{preenchido}{vazio}] {percentagem}%')
-        sys.stdout.flush() 
-        
-        # Pausa dinâmica[cite: 1]
-        time.sleep(segundos / tamanho_barra)
-        
-    print("\n")
+# Flags de Estado Global
+sistema_bloqueado = True
 
-def troll_language_selector():
-    """
-    Carrega o menu de idiomas a partir do JSON e obriga o utilizador a escolher Inglês.
-    """
-    ficheiro_menu = "data/menu_troll.json"
-    
-    # Verifica se o ficheiro existe antes de abrir[cite: 1]
-    if not os.path.exists(ficheiro_menu):
-        print(f"[SYSTEM FAILURE]: The file {ficheiro_menu} is missing.")
-        return "en" 
-        
+def menu_troll():
+    """Ritual de seleção de idioma obriga a escolher Inglês."""
+    exibir_cabecalho("RITUAL DE IDIOMAS DO SISTEMA")
     try:
-        # Gestão de contexto para fecho seguro do ficheiro[cite: 1]
-        with open(ficheiro_menu, "r", encoding="utf-8") as f:
-            menu_data = json.load(f)
-    except Exception as e:
-        print(f"[SYSTEM FAILURE]: Could not load menu data. {e}")
-        return "en"
+        with open("data/menu_troll.json", "r", encoding="utf-8") as f:
+            opcoes_idioma = json.load(f)
+    except Exception:
+        print("[SISTEMA]: Erro ao carregar menu_troll.json. Continuando em Inglês por defeito.")
+        return
 
     while True:
-        print("\n" + "="*40)
-        print("🌍 GLOBAL SETUP - SELECT YOUR LANGUAGE")
-        print("="*40)
+        print("\nEscolha o idioma do terminal / Select system language:")
+        for key, val in opcoes_idioma.items():
+            print(f"{key}. {val['language']}")
         
-        for key, data in menu_data.items():
-            print(f"{key}. {data['language']}")
-            
-        choice = input("\nEnter the number of your choice: ").strip()
-        
-        if choice in menu_data:
-            selected_option = menu_data[choice]
-            print(f"\n[SYSTEM]: {selected_option['response']}")
-            time.sleep(1.5)
-            
-            if selected_option['is_valid']:
-                return "en"
+        escolha = input("\n> Opção: ").strip()
+        if escolha in opcoes_idioma:
+            resposta = opcoes_idioma[escolha]
+            print(f"\n{resposta['response']}")
+            if resposta["is_valid"]:
+                time.sleep(1)
+                break
         else:
-            print("\n[SYSTEM]: Invalid input. Are you just mashing the keyboard?")
-            time.sleep(1.5)
+            print("\n[ERRO]: Opção inválida!")
 
-def exportar_para_txt(db_path="data/piadas.db"):
-    """
-    Exporta o conteúdo da base de dados para um ficheiro de texto.
-    """
+def criar_personagem():
+    """Invocação e criação da classe do jogador."""
+    exibir_cabecalho("CRIAÇÃO DE PERSONAGEM")
+    print("Classes Disponíveis:")
+    print("1. Data Seer (Revela dicas com combos altos)")
+    print("2. Strong Typing Paladin (Tolera erros de Regex)")
+    print("3. Syntax Inquisitor (Ganha o dobro de loot nas vitórias)")
+    
+    escolha = input("\nEscolha a sua classe (1-3): ").strip()
+    jogador = Personagem(classe_id=escolha)
+    print(f"\n✨ Classe selecionada: {jogador.classe_nome}!")
+    return jogador
+
+def batalha_purificacao(jogador, motor, ia):
+    """Mecânica de purificação de aldeões usando Expressões Regulares (Regex)."""
+    exibir_cabecalho("BATALHA DE PURIFICAÇÃO (REGEX)")
+    
     try:
-        # Estabelecer ligação e criar cursor[cite: 1]
-        con = sqlite3.connect(db_path)
+        con = sqlite3.connect("data/piadas.db")
         cursor = con.cursor()
-        cursor.execute("SELECT setup, punchline, timestamp FROM piadas")
-        piadas = cursor.fetchall()
+        cursor.execute("SELECT id, setup, punchline FROM piadas WHERE dificuldade = 'NORMAL' ORDER BY RANDOM() LIMIT 1")
+        piada = cursor.fetchone()
         con.close()
-
-        if not piadas:
-            return False, "A base de dados ainda está vazia. A thread precisa de tempo!"
-
-        # Escrita em ficheiro de texto[cite: 1]
-        with open("data/exportacao_piadas.txt", "w", encoding="utf-8") as f:
-            f.write("--- RELATÓRIO DE PIADAS (GERADO AUTOMATICAMENTE) ---\n\n")
-            for setup, punchline, timestamp in piadas:
-                f.write(f"[{timestamp}]\nQ: {setup}\nA: {punchline}\n")
-                f.write("-" * 40 + "\n")
-        
-        return True, "Piadas exportadas com sucesso para 'data/exportacao_piadas.txt'."
     except Exception as e:
-        return False, f"Erro ao exportar: {e}"
+        print(f"[ERRO SQLITE]: {e}")
+        return
 
-def menu_principal():
-    """
-    Loop central do programa que integra a Thread, a BD, a IA e o Regex.
-    """
-    # 1. O Menu Troll de arranque
-    idioma = troll_language_selector()
+    if not piada:
+        print("[SISTEMA]: Nenhuma vítima infetada no momento. Aguarde a praga espalhar-se!")
+        return
+
+    piada_id, setup, punchline = piada
+    print(f"\n[ALDEÃO INFETADO #{piada_id}]: \"{setup}\"")
     
-    print("\n" + "="*50)
-    print("🤖 SYSTEM BOOT SEQUENCE INITIATED")
-    print("="*50)
+    # Dica Passiva da Classe Data Seer
+    if jogador.passiva == "clarividencia" and jogador.combo > 1:
+        dica = punchline[:jogador.combo * 2] + "..."
+        print(f"🔮 [DICA DO VIDENTE]: O punchline começa por: '{dica}'")
+
+    palpite = input("\nLança o teu feitiço de Regex/Palavra para purificar: ").strip()
     
-    barra_carregamento("A estabelecer ligação com a API do Fred", 3)
-    barra_carregamento("A carregar dicionário de insultos", 2)
+    if not palpite:
+        print("[ERRO]: Tentativa cancelada.")
+        return
 
-    # 2. Inicializar Módulos
-    ia = AdversarioAI()
-    coletor = ColetorDePiadas()
-    
-    print("[SYSTEM]: A iniciar a thread de recolha em background (1 piada/minuto)...")
-    # A thread arranca aqui, respeitando a regra principal do projeto[cite: 1]
-    coletor.iniciar_recolha_background()
-    time.sleep(2)
-
-    # 3. Terminal Interativo (Loop)
-    while True:
-        print("\n" + "-"*40)
-        print(" TERMINAL DE CONTROLO DE PIADAS ")
-        print("-"*40)
-        print("1. Consultar quantidade de piadas na Base de Dados")
-        print("2. Procurar piadas por palavra-chave (Usa Regex!)")
-        print("3. Exportar base de dados para TXT")
-        print("4. Sair (Desistir)")
-        
-        escolha = input("\nEscolha a sua operação: ").strip()
-
-        if escolha == "1":
-            try:
-                con = sqlite3.connect(coletor.db_path)
-                cursor = con.cursor()
-                cursor.execute("SELECT COUNT(*) FROM piadas")
-                total = cursor.fetchone()[0]
-                con.close()
-                print(f"\n[INFO]: Temos atualmente {total} piadas guardadas no SQLite.")
-                if total < 2:
-                    print("[INFO]: Dê algum tempo à thread para trabalhar...")
-            except sqlite3.Error as e:
-                print(f"Erro ao ler a BD: {e}")
-
-        elif escolha == "2":
-            padrao = input("\nInsira o padrão Regex para procurar (ex: 'chicken|dog'): ").strip()
-            try:
-                # Validação de sintaxe da expressão regular
-                re.compile(padrao) 
-                
-                con = sqlite3.connect(coletor.db_path)
-                cursor = con.cursor()
-                cursor.execute("SELECT setup, punchline FROM piadas")
-                todas_piadas = cursor.fetchall()
-                con.close()
-
-                encontradas = 0
-                print("\n--- RESULTADOS DA PESQUISA ---")
-                for setup, punchline in todas_piadas:
-                    texto_completo = f"{setup} {punchline}"
-                    # Pesquisa flexível de padrões com ignore case[cite: 1]
-                    if re.search(padrao, texto_completo, re.IGNORECASE):
-                        print(f"-> {setup} | {punchline}")
-                        encontradas += 1
-                
-                if encontradas == 0:
-                    print("Nenhuma piada corresponde ao teu padrão brilhante.")
-                    ia.reagir_erro()
-                else:
-                    ia.reagir_sucesso()
-
-            except re.error:
-                print("\n[ERRO]: Expressão Regular inválida!")
-                ia.reagir_erro()
-
-        elif escolha == "3":
-            print("\n[SYSTEM]: A preparar ficheiro. Isto seria mais rápido se o teu disco não fosse uma batata.")
-            barra_carregamento("A exportar dados do SQLite para TXT", 4)
-            sucesso, mensagem = exportar_para_txt(coletor.db_path)
+    # Validação de Expressão Regular (Regex)
+    try:
+        match = re.search(re.escape(palpite), punchline, re.IGNORECASE)
+        if match:
+            jogador.combo += 1
+            motor.aumentar_taxa(1)
+            barra_carregamento("Purificando código corrompido", passos=10)
+            print(f"✨ ÉS UM SUCESSO! Purificaste o punchline: '{punchline}'")
+            print(ia.reagir_sucesso())
             
-            print(f"\n[SISTEMA]: {mensagem}")
-            if sucesso:
-                ia.reagir_sucesso()
-            else:
-                ia.reagir_erro()
-
-        elif escolha == "4":
-            print("\n[SYSTEM]: A encerrar terminal. A thread de background será morta.")
-            time.sleep(1)
-            break
-
+            # Bónus da Classe Inquisidor
+            if jogador.passiva == "critico":
+                jogador.combo += 1
+                
+            loot = jogador.ganhar_loot()
+            if loot:
+                print(f"🎁 LOOT OBTIDO: Ganhaste [{loot['nome']}]! Guardado no SQLite.")
         else:
-            print("\n[ERRO]: Opção inválida.")
-            ia.reagir_erro()
+            if jogador.passiva == "escudo" and input("🛡️ Desejas usar a tua aura de Paladino para absorver a falha? (s/n): ").lower() == 's':
+                print("[PALADINO]: Dano absorvido! Combo mantido.")
+            else:
+                jogador.combo = 0
+                motor.penalizar_taxa(1)
+                print(f"❌ FALHASTES! O feitiço ricocheteou. Resposta certa era: '{punchline}'")
+                print(ia.reagir_falha())
+    except Exception as e:
+        print(f"[ERRO REGEX]: {e}")
+
+def gerir_inventario(jogador):
+    """Menu de gestão do inventário com operações CRUD em SQLite."""
+    exibir_cabecalho("MOCHILA DO HERÓI (SQLITE CRUD)")
+    itens = jogador.ver_inventario()
+    
+    if not itens:
+        print("\nA tua mochila está vazia! Vence batalhas para obter poções e artefactos.")
+        return
+
+    print("\nItens no teu Inventário:")
+    for item in itens:
+        item_id, nome, desc, buff, debuff, qtd = item
+        print(f"ID #{item_id} | {nome} (x{qtd}) - {desc}")
+        print(f"   🟢 Buff: {buff} | 🔴 Debuff: {debuff}")
+
+    op = input("\nIntroduz o ID do item a consumir (ou ENTER para sair): ").strip()
+    if op.isdigit():
+        if jogador.consumir_item(int(op)):
+            print("\n🧪 Item consumido com sucesso do SQLite!")
+        else:
+            print("\n❌ Item não encontrado.")
+
+def main():
+    global sistema_bloqueado
+    
+    # 1. Menu Troll de Idiomas
+    menu_troll()
+    
+    # 2. Criação do Herói e Módulos
+    jogador = criar_personagem()
+    motor = ColetorDePiadas()
+    analisador = AnalisadorDeDados()
+    ia = IASarcastica()
+    
+    # 3. Disparar a Thread em background
+    motor.iniciar_recolha_background()
+    print("\n[ALERTA DE SISTEMA]: A Thread de background do Fred foi ativada!")
+    
+    # 4. Loop Principal
+    while True:
+        status_sis = "🔴 BLOQUEADO (Anomalia Ativa)" if sistema_bloqueado else "🟢 DESBLOQUEADO"
+        exibir_cabecalho("TAVERNA DOS INQUISIDORES DE PYTHON")
+        print(f"Herói: {jogador.classe_nome} | Combo: {jogador.combo} | Status: {status_sis}")
+        print("-" * 60)
+        print("1. 🔮 Feitiço de Vidência (Gerar Gráfico Pandas/Matplotlib)")
+        print("2. 💥 Destruir Covil da Entidade (Introduzir ID da Anomalia)")
+        print("3. ⚔️ Purificar Aldeão Infetado (Batalha Regex)")
+        print("4. 🎒 Mochila & Inventário (Consultar/Consumir Itens)")
+        print("5. 🚪 Fugir do Reino (Sair)")
+        
+        opcao = input("\nQual é o teu comando? ").strip()
+        
+        if opcao == "1":
+            analisador.gerar_relatorio_grafico("anomaly_map.png")
+            print("📜 [RADAR]: Consulta o ficheiro 'anomaly_map.png' criado na raiz do projeto!")
+        
+        elif opcao == "2":
+            id_input = input("\nIntroduz o ID da anomalia identificada no gráfico: ").strip()
+            if analisador.destruir_covil_anomalia(id_input):
+                sistema_bloqueado = False
+        
+        elif opcao == "3":
+            if sistema_bloqueado:
+                print("\n⛔ SISTEMA BLOQUEADO! Tens de gerar o gráfico (Opção 1) e destruir o Covil (Opção 2) primeiro!")
+            else:
+                batalha_purificacao(jogador, motor, ia)
+        
+        elif opcao == "4":
+            gerir_inventario(jogador)
+        
+        elif opcao == "5":
+            texto_animado("\nA fugir do reino de Python... A praga continua a espalhar-se!", velocidade=0.01)
+            sys.exit(0)
+            
+        else:
+            print("\nComando inválido! Escolha entre 1 e 5.")
+        
+        input("\nPressiona ENTER para continuar...")
 
 if __name__ == "__main__":
-    menu_principal()
+    main()

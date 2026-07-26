@@ -1,0 +1,37 @@
+[
+  {
+    "nome": "Dev Coffee",
+    "efeito": "cafe_dev",
+    "desc": "Instantly grants +2 Combo.",
+    "buff": "+2 Combo",
+    "debuff": "Risk of caffeine crash if you miss next time."
+  },
+  {
+    "nome": "Inspection Scroll",
+    "efeito": "pergaminho",
+    "desc": "Reveals punchline character length.",
+    "buff": "Inspect punchline size",
+    "debuff": "Prevents using other items in the same turn."
+  },
+  {
+    "nome": "Debug Potion",
+    "efeito": "pocao_debug",
+    "desc": "Protects against combo loss on the next error.",
+    "buff": "Combo Shield",
+    "debuff": "None."
+  },
+  {
+    "nome": "Garbage Collector Amulet",
+    "efeito": "garbage_collector",
+    "desc": "Deletes 3 junk jokes from SQLite database.",
+    "buff": "Purge junk from SQLite",
+    "debuff": "Pauses background thread for 1 turn."
+  },
+  {
+    "nome": "Fred's Cursed Relic",
+    "efeito": "reliquia_fred",
+    "desc": "Reveals first and last letter of the current punchline.",
+    "buff": "Reveal first & last letter",
+    "debuff": "Slightly increases plague download rate."
+  }
+]

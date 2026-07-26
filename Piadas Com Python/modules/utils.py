@@ -1,27 +1,27 @@
 import sys
 import time
 
-def barra_carregamento(mensagem="A processar", segundos=3):
-    """
-    Gera uma barra de loading animada no terminal.
-    Usa sys.stdout e '\r' para reescrever a linha dinâmica.
-    """
-    tamanho_barra = 40
-    print() # Linha em branco para dar espaço
-    
-    for i in range(tamanho_barra + 1):
-        # Calcula a percentagem
-        percentagem = int(100 * (i / tamanho_barra))
-        
-        # Cria a barra visual (ex: ████████----------)
-        preenchido = '█' * i
-        vazio = '-' * (tamanho_barra - i)
-        
-        # \r volta ao início da linha sem saltar para a linha de baixo
-        sys.stdout.write(f'\r[IA SARCÁSTICA] {mensagem}... [{preenchido}{vazio}] {percentagem}%')
-        sys.stdout.flush() # Força a atualização do terminal
-        
-        # O tempo_sleep é dinâmico conforme o tempo total que queremos que demore
-        time.sleep(segundos / tamanho_barra)
-        
-    print("\n") # Salta de linha quando termina
+def texto_animado(texto, velocidade=0.02):
+    """Prints text letter by letter for a RPG retro terminal feel."""
+    for letra in texto:
+        sys.stdout.write(letra)
+        sys.stdout.flush()
+        time.sleep(velocidade)
+    print()
+
+def barra_carregamento(descricao="Casting spell", passos=15, tempo=0.03):
+    """Simulates a magic/loading progress bar."""
+    print(f"\n{descricao}:")
+    for i in range(passos + 1):
+        percentual = (i / passos) * 100
+        barra = "█" * i + "-" * (passos - i)
+        sys.stdout.write(f"\r[{barra}] {percentual:.0f}%")
+        sys.stdout.flush()
+        time.sleep(tempo)
+    print("\n")
+
+def exibir_cabecalho(titulo):
+    """Displays formatted ASCII headers."""
+    print("=" * 60)
+    print(f" 🔥 {titulo.upper()} 🔥".center(60))
+    print("=" * 60)

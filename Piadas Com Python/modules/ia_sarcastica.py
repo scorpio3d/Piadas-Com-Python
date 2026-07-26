@@ -1,33 +1,28 @@
 import json
 import random
-import os
 
-class AdversarioAI:
-    def __init__(self):
-        self.patience = 100
-        # Os caminhos agora apontam para a pasta 'data/'
-        self.reacoes_positivas = self._carregar_ficheiro("data/reacoes_positivas.json")
-        self.reacoes_negativas = self._carregar_ficheiro("data/reacoes_negativas.json")
+class IASarcastica:
+    """
+    Dungeon Master AI module. Loads reactions from JSON files
+    and provides humorous/sarcastic commentary based on player performance.
+    """
+    def __init__(self, pos_path="data/reacoes_positivas.json", neg_path="data/reacoes_negativas.json"):
+        self.reacoes_positivas = self._carregar_json(pos_path)
+        self.reacoes_negativas = self._carregar_json(neg_path)
 
-    def _carregar_ficheiro(self, nome_ficheiro):
-        # Verifica se o ficheiro existe antes de o manipular[cite: 1]
-        if not os.path.exists(nome_ficheiro):
-            return [f"[SYSTEM FAILURE]: The file {nome_ficheiro} is missing."]
-            
+    def _carregar_json(self, caminho):
         try:
-            # Uso de gestão de contexto (with) para o ficheiro[cite: 1]
-            with open(nome_ficheiro, "r", encoding="utf-8") as ficheiro:
-                dados = json.load(ficheiro)
-                return dados
-        except Exception as e:
-            return [f"Error reading script files: {e}"]
-
-    def reagir_erro(self):
-        self.patience += 10
-        insulto = random.choice(self.reacoes_negativas)
-        print(f"\n[SYSTEM]: {insulto}")
+            with open(caminho, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            return ["... System monitoring ..."]
 
     def reagir_sucesso(self):
-        self.patience -= 50
-        frustracao = random.choice(self.reacoes_positivas)
-        print(f"\n[SYSTEM]: {frustracao}")
+        if self.reacoes_positivas:
+            return f"😈 [FRED DM]: {random.choice(self.reacoes_positivas)}"
+        return "😈 [FRED DM]: Not bad for a human..."
+
+    def reagir_falha(self):
+        if self.reacoes_negativas:
+            return f"😈 [FRED DM]: {random.choice(self.reacoes_negativas)}"
+        return "😈 [FRED DM]: You failed patheticly!"

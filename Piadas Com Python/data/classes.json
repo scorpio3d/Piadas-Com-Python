@@ -1,0 +1,17 @@
+{
+  "1": {
+    "nome": "Data Seer",
+    "descricao": "Reveals hidden curse letters based on magic combo.",
+    "passiva": "clarividencia"
+  },
+  "2": {
+    "nome": "Strong Typing Paladin",
+    "descricao": "Has a shield against syntax errors (tolerates fail attempts).",
+    "passiva": "escudo"
+  },
+  "3": {
+    "nome": "Syntax Inquisitor",
+    "descricao": "Doubles joke capture rate on critical hit answers.",
+    "passiva": "critico"
+  }
+}

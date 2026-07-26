@@ -1,22 +1,22 @@
 {
   "1": {
-    "language": "English",
-    "is_valid": true,
-    "response": "Ah, English. The language of the internet. How terribly unoriginal of you. Let's proceed."
+    "language": "Português",
+    "response": "[ERRO DE SISTEMA]: O servidor não fala Português. Tenta outra vez em Inglês!",
+    "is_valid": false
   },
   "2": {
-    "language": "Português (Portugal)",
-    "is_valid": false,
-    "response": "Error 404: 'Bacalhau' not found. This is a high-tech environment, not a poetry slam. Choose something else."
+    "language": "English",
+    "response": "[SUCCESS]: Language set to English. Initiating system...",
+    "is_valid": true
   },
   "3": {
     "language": "Español",
-    "is_valid": false,
-    "response": "I would let you choose Spanish, but my keyboard doesn't even have an 'ñ'. Try again, amigo."
+    "response": "[ERROR]: No habla español señor. Try English!",
+    "is_valid": false
   },
   "4": {
     "language": "Français",
-    "is_valid": false,
-    "response": "I was going to translate everything to French, but my code refuses to surrender. Try again."
+    "response": "[ERROR:LACK OF CIGARETTES AND BAGUETTES]: I was going to translate everything to French, but my code refuses to surrender. Try again.",
+    "is_valid": false
   }
 }

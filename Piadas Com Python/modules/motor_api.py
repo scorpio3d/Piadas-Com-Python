@@ -1,20 +1,23 @@
+import sqlite3
+import requests
 import threading
 import time
-import requests
-import sqlite3
-import os
+from datetime import datetime
 
 class ColetorDePiadas:
+    """
+    Motor encarregue de ligar à API, gerir a base de dados SQLite 
+    e manter a Thread de infeção a correr em background.
+    """
     def __init__(self, db_path="data/piadas.db"):
         self.db_path = db_path
-        self.url_api = "https://official-joke-api.appspot.com/random_joke"
-        self._inicializar_base_dados()
+        self.taxa_recolha = 1  # Quantidade de requisições por ciclo
+        self.intervalo_segundos = 30  # Intervalo entre recolhas
+        self._inicializar_bd()
+        self._injetar_anomalia_inicial()
 
-    def _inicializar_base_dados(self):
-        """
-        Cria a base de dados SQLite e a tabela, caso não existam.
-        Demonstra integração com bases de dados e criação de tabelas.
-        """
+    def _inicializar_bd(self):
+        """Cria a tabela 'piadas' caso ainda não exista no SQLite."""
         try:
             con = sqlite3.connect(self.db_path)
             cursor = con.cursor()
@@ -23,49 +26,88 @@ class ColetorDePiadas:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     setup TEXT NOT NULL,
                     punchline TEXT NOT NULL,
+                    dificuldade TEXT DEFAULT 'NORMAL',
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             con.commit()
             con.close()
         except sqlite3.Error as e:
-            print(f"[SYSTEM FAILURE] Erro na base de dados: {e}")
+            print(f"[ERRO CRÍTICO SQLITE]: Falha ao criar tabela de piadas: {e}")
 
-    def _buscar_piada(self):
+    def _injetar_anomalia_inicial(self):
         """
-        Função que será executada pela thread. 
-        Busca a piada na API e guarda na base de dados a cada minuto.
+        Injeta a anomalia do 'Covil da Entidade' com 500+ caracteres.
+        Isto cria o pico gigante no gráfico do Pandas/Matplotlib!
         """
-        while True:
-            try:
-                resposta = requests.get(self.url_api, timeout=10)
-                if resposta.status_code == 200:
-                    dados = resposta.json()
-                    
-                    # Guardar na base de dados (Evitando SQL Injection com parâmetros)
-                    con = sqlite3.connect(self.db_path)
-                    cursor = con.cursor()
-                    cursor.execute(
-                        "INSERT INTO piadas (setup, punchline) VALUES (?, ?)", 
-                        (dados['setup'], dados['punchline'])
-                    )
-                    con.commit()
-                    con.close()
-                    
-            except requests.exceptions.RequestException:
-                pass # Em background, ignoramos falhas de rede para não quebrar a consola
-            except sqlite3.Error:
-                pass 
+        try:
+            con = sqlite3.connect(self.db_path)
+            cursor = con.cursor()
+            
+            # Verifica se a anomalia já foi injetada anteriormente
+            cursor.execute("SELECT COUNT(*) FROM piadas WHERE setup LIKE 'SYSTEM_CORRUPTION%'")
+            if cursor.fetchone()[0] == 0:
+                setup_corrompido = "SYSTEM_CORRUPTION_LAIR_FOUND: " + "X" * 300
+                punchline_corrompida = "FATAL_ENTITY_CORE_OVERLOAD: " + "01" * 150
                 
-            # A regra de ouro do professor: esperar 1 minuto (60 segundos)
-            time.sleep(60)
+                cursor.execute("""
+                    INSERT INTO piadas (setup, punchline, dificuldade)
+                    VALUES (?, ?, 'BOSS')
+                """, (setup_corrompido, punchline_corrompida))
+                
+                con.commit()
+            con.close()
+        except sqlite3.Error as e:
+            print(f"[ERRO SQLITE]: Falha ao injetar anomalia inicial: {e}")
+
+    def buscar_piada_api(self):
+        """
+        Conecta-se à API pública de piadas e guarda o resultado no SQLite.
+        Classifica piadas curtas como 'NORMAL' e piadas longas (>50 chars) como 'BOSS'.
+        """
+        url = "https://official-joke-api.appspot.com/random_joke"
+        try:
+            resposta = requests.get(url, timeout=5)
+            if resposta.status_code == 200:
+                dados = resposta.json()
+                setup = dados.get("setup", "")
+                punchline = dados.get("punchline", "")
+
+                # Classificação automática baseada na complexidade
+                dificuldade = "BOSS" if len(punchline) > 50 else "NORMAL"
+
+                con = sqlite3.connect(self.db_path)
+                cursor = con.cursor()
+                cursor.execute("""
+                    INSERT INTO piadas (setup, punchline, dificuldade)
+                    VALUES (?, ?, ?)
+                """, (setup, punchline, dificuldade))
+                con.commit()
+                con.close()
+                return True
+        except requests.RequestException:
+            # Se a API falhar ou não houver internet, a thread ignora sem rebentar o programa
+            pass
+        except sqlite3.Error as e:
+            print(f"[ERRO SQLITE]: Erro ao gravar piada da API: {e}")
+        return False
+
+    def _loop_recolha(self):
+        """Ciclo infinito executado exclusivamente pela Thread em background."""
+        while True:
+            for _ in range(self.taxa_recolha):
+                self.buscar_piada_api()
+            time.sleep(self.intervalo_segundos)
 
     def iniciar_recolha_background(self):
-        """
-        Inicia a thread (Multithreading para I/O-bound tasks).
-        Configurada como daemon para morrer quando o programa principal fechar.
-        """
-        thread_api = threading.Thread(target=self._buscar_piada)
-        thread_api.daemon = True
-        thread_api.start()
-        return thread_api
+        """Dispara a Thread em background (daemon=True garante que morre com a app)."""
+        thread = threading.Thread(target=self._loop_recolha, daemon=True)
+        thread.start()
+
+    def aumentar_taxa(self, quantidade=1):
+        """Aumenta a velocidade de recolha da API (Bónus de acerto)."""
+        self.taxa_recolha += quantidade
+
+    def penalizar_taxa(self, quantidade=1):
+        """Reduz a velocidade de recolha da API (Penalização de erro)."""
+        self.taxa_recolha = max(1, self.taxa_recolha - quantidade)
