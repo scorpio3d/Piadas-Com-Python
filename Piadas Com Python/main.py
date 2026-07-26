@@ -1,7 +1,8 @@
 import sys
 import time
-import rich
 import os
+import json
+import rich
 from rich.console import Console
 from rich.panel import Panel
 
@@ -9,20 +10,35 @@ from modules.operator import Operator
 from modules.network_db import NetworkDB
 from modules.data_scanner import DataScanner
 from modules.regex_combat import RegexCombat
-os.system("")
 
-# 1. FORÇAR O TERMINAL A USAR CORES NÉON (TRUECOLOR)
+os.system("")
 rich.reconfigure(color_system="truecolor", force_terminal=True)
 console = Console()
 system_locked = True
 
 def print_header(title, color="bold #00f0ff"):
-    """Generates a Cyberpunk-style header with Neon Colors."""
-    panel = Panel(f"⚡ {title} ⚡", expand=False, border_style=color, padding=(0, 2))
+    panel = Panel(f"/// {title} ///", expand=False, border_style=color, padding=(0, 2))
     console.print(panel)
+
+def select_class():
+    console.clear()
+    print_header("OPERATOR REGISTRATION", "bold #00f0ff")
+    console.print("\n[bold white]Select your combat profile:[/]")
+    console.print("  [bold #00ff00]1.[/] Netrunner [dim](Passive: Neural Scan - Identifies Honeypots)[/]")
+    console.print("  [bold #00ff00]2.[/] Cyber-Enforcer [dim](Passive: ICE Armor - Blocks first failure)[/]")
+    console.print("  [bold #00ff00]3.[/] Code-Breaker [dim](Passive: Deep Extraction - Double data extraction)[/]")
+    
+    while True:
+        choice = input("\n> Initialize Profile (1-3): ").strip()
+        if choice in ["1", "2", "3"]:
+            return choice
+        console.print("[bold #ff0055][ERROR] Invalid syntax. Select 1, 2, or 3.[/]")
 
 def main():
     global system_locked
+    
+    profile_id = select_class()
+    player = Operator(profile_id=profile_id)
     
     console.clear()
     print_header("NEON INQUISITOR: UPLINK TERMINAL", "bold #ff0055")
@@ -32,7 +48,6 @@ def main():
     db_engine = NetworkDB()
     db_engine.start_background_process()
     
-    player = Operator(profile_id="1")
     scanner = DataScanner()
     combat = RegexCombat()
     
@@ -40,18 +55,25 @@ def main():
     time.sleep(1)
     
     while True:
-        status_color = "[bold #ff0055]🔴 BLACK ICE ACTIVE (Access Denied)[/]" if system_locked else "[bold #00ff00]🟢 ROOT ACCESS GRANTED[/]"
+        status_color = "[bold #ff0055][BLACK ICE ACTIVE] (Access Denied)[/]" if system_locked else "[bold #00ff00][ROOT ACCESS GRANTED][/]"
         
         print_header("MAIN SYSTEM MENU", "bold #00f0ff")
-        console.print(f"👨‍💻 [bold #00f0ff]Operator:[/bold #00f0ff] {player.get_name()} | ⚡ [bold #fdf500]Sync-Combo:[/bold #fdf500] {player.get_combo()}")
-        console.print(f"🛡️  [bold white]Security Status:[/bold white] {status_color}")
+        console.print(f"[bold #00f0ff]Operator:[/] {player.get_name()} | [bold #fdf500]Sync-Combo:[/] {player.get_combo()}")
+        console.print(f"[bold white]Security Status:[/] {status_color}")
         console.print("[dim #555555]" + "-" * 60 + "[/]")
         
-        console.print("1. 🔓 [bold white]Network Scan[/] [dim #00f0ff](Pandas Anomaly Radar)[/]")
-        console.print("2. 🔑 [bold white]Kernel Bypass[/] [dim #00f0ff](Input Critical Threat ID)[/]")
-        console.print("3. ⚔️  [bold white]Debug Corrupted Node[/] [dim #00f0ff](Regex Override Sequence)[/]")
-        console.print("4. 💾 [bold white]Local Drive[/] [dim #00f0ff](SQLite Inventory)[/]")
-        console.print("5. 🚪 [bold white]Disconnect[/] [dim #ff0055](Erase Traces & Exit)[/]")
+        # Menu carregado dinamicamente a partir do JSON externo
+        try:
+            with open("data/menu_config.json", "r", encoding="utf-8") as f:
+                menu_options = json.load(f)
+                for key, opt in menu_options.items():
+                    console.print(f"{key}. [bold white]{opt['title']}[/] [dim #00f0ff]({opt['desc']})[/]")
+        except (FileNotFoundError, json.JSONDecodeError):
+            console.print("1. [bold white]Network Scan[/]")
+            console.print("2. [bold white]Kernel Bypass[/]")
+            console.print("3. [bold white]Debug Corrupted Node[/]")
+            console.print("4. [bold white]Local Drive[/]")
+            console.print("5. [bold white]Disconnect[/]")
         
         choice = input("\n> Operator Input: ").strip()
         
@@ -66,9 +88,12 @@ def main():
                 
             case "3":
                 if system_locked:
-                    console.print("\n⛔ [bold #ff0055]ACCESS DENIED: Black ICE Firewall is active. Execute Scan (1) and Bypass (2) first.[/]")
+                    console.print("\n[bold #ff0055][ACCESS DENIED] Black ICE Firewall is active. Execute Scan (1) and Bypass (2) first.[/]")
                 else:
-                    combat.initiate_override(player)
+                    survived = combat.initiate_override(player)
+                    if not survived:
+                        system_locked = True
+                        console.print("\n[bold #ff0055][CRITICAL PENALTY] You have been kicked out of the kernel. System Locked.[/]")
                     
             case "4":
                 drive = player.read_local_drive()
@@ -80,11 +105,11 @@ def main():
                         console.print(f"  [bold #00f0ff]{i}.[/] {item}")
                 
             case "5":
-                console.print("\n[bold #ff0055]Erasing IP traces and disconnecting from the Matrix...[/]")
+                console.print("\n[bold #ff0055][SYS-DISCONNECT] Erasing IP traces and closing connection...[/]")
                 sys.exit(0)
                 
             case _:
-                console.print("\n[bold #ff0055]Syntax Error: Invalid command.[/]")
+                console.print("\n[bold #ff0055][ERROR] Invalid command syntax.[/]")
                 
         input("\nPress ENTER to continue...")
         console.clear()

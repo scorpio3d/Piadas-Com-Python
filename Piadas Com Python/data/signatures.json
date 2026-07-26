@@ -1,0 +1,68 @@
+{
+  "tier1": [
+    {
+      "sig": "192.168.0.99",
+      "regex": "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}",
+      "desc": "Rogue IP Address"
+    },
+    {
+      "sig": "0xFA4B",
+      "regex": "0x[0-9A-F]{4}",
+      "desc": "Hexadecimal Memory Leak"
+    },
+    {
+      "sig": "PORT:6666",
+      "regex": "PORT:\\d{4}",
+      "desc": "Unauthorized Backdoor Port"
+    },
+    {
+      "sig": "UID_9999",
+      "regex": "UID_\\d{4}",
+      "desc": "Corrupted Admin Token"
+    }
+  ],
+  "tier2": [
+    {
+      "sig": "MAC:00-B0-D0-63-C2-26",
+      "regex": "MAC:([0-9A-F]{2}-){5}[0-9A-F]{2}",
+      "desc": "Spoofed MAC Address"
+    },
+    {
+      "sig": "CRED:4444-5555-6666-7777",
+      "regex": "CRED:(\\d{4}-){3}\\d{4}",
+      "desc": "Stolen Cyber-Credits"
+    },
+    {
+      "sig": "PAYLOAD_XYZ",
+      "regex": "PAYLOAD_[A-Z]{3}",
+      "desc": "Encrypted Dropper"
+    },
+    {
+      "sig": "DROP TABLE users;",
+      "regex": "DROP\\sTABLE\\s[a-z]+;",
+      "desc": "SQL Injection Fragment"
+    }
+  ],
+  "tier3": [
+    {
+      "sig": "BEARER_x9A4fQ2",
+      "regex": "BEARER_[a-zA-Z0-9]{7}",
+      "desc": "Stolen API Bearer Token"
+    },
+    {
+      "sig": "PTR:0x00A1B2C3",
+      "regex": "PTR:0x[0-9A-F]{8}",
+      "desc": "Kernel Pointer Override"
+    },
+    {
+      "sig": "EXEC:/bin/bash",
+      "regex": "EXEC:\\/bin\\/[a-z]{2,4}",
+      "desc": "Root Shell Execution"
+    },
+    {
+      "sig": "REQ:150.00BTC",
+      "regex": "REQ:\\d{3}\\.\\d{2}BTC",
+      "desc": "Ransomware Payment Flag"
+    }
+  ]
+}

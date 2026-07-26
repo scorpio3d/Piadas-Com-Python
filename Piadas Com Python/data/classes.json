@@ -1,17 +1,17 @@
 {
   "1": {
-    "nome": "Netrunner",
-    "passiva": "clarividencia",
-    "descricao": "Reveals parts of the encrypted code (hints) with high combos."
+    "name": "Netrunner",
+    "passive": "clarividencia",
+    "desc": "Neural Scan: Identifies Honeypots and Signature Types."
   },
   "2": {
-    "nome": "Cyber-Enforcer",
-    "passiva": "escudo",
-    "descricao": "Reactive ICE armor that blocks the first code injection failure."
+    "name": "Cyber-Enforcer",
+    "passive": "escudo",
+    "desc": "ICE Armor: Absorbs the first code injection failure."
   },
   "3": {
-    "nome": "Code-Breaker",
-    "passiva": "critico",
-    "descricao": "Extracts double data (Loot) whenever Malware is neutralized."
+    "name": "Code-Breaker",
+    "passive": "critico",
+    "desc": "Deep Extraction: Yields double data fragments on success."
   }
 }

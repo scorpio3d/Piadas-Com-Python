@@ -1,0 +1,22 @@
+{
+  "1": {
+    "title": "Network Scan",
+    "desc": "Pandas Anomaly Radar"
+  },
+  "2": {
+    "title": "Kernel Bypass",
+    "desc": "Input Critical Threat ID"
+  },
+  "3": {
+    "title": "Debug Corrupted Node",
+    "desc": "Regex Override Sequence"
+  },
+  "4": {
+    "title": "Local Drive",
+    "desc": "SQLite Inventory & Storage"
+  },
+  "5": {
+    "title": "Disconnect",
+    "desc": "Erase Traces & Exit"
+  }
+}

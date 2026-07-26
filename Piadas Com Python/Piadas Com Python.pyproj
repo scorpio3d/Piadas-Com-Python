@@ -34,8 +34,11 @@
   <ItemGroup>
     <Content Include="data\classes.json" />
     <Content Include="data\itens.json" />
+    <Content Include="data\menu_config.json" />
     <Content Include="data\reacoes_negativas.json" />
     <Content Include="data\reacoes_positivas.json" />
+    <Content Include="data\signatures.json" />
+    <Content Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="data\" />

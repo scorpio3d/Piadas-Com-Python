@@ -8,50 +8,39 @@ class Operator:
     Strictly follows OOP principles: Encapsulation, Getters/Setters, and File I/O.
     """
     
-    def __init__(self, profile_id):
-        self._profile_id = str(profile_id)
-        self._name = "Unknown"
-        self._passive = "None"
-        self._description = "No data"
-        self._sync_combo = 0
-        self._local_drive = [] 
+    def __init__(self, profile_id="1", db_path="data/local_drive.db"):
+        self.profile_id = str(profile_id)
+        self.combo = 0
+        self.db_path = db_path
+        self.local_drive = []
         
-        self._load_profile_data()
-
-    def _load_profile_data(self):
-        filepath = "data/classes.json"
-        
-        if not os.path.exists(filepath):
-            print(f"[bold #ff0055][SYSTEM ERROR] Configuration file '{filepath}' not found.[/]")
-            return
-
-        with open(filepath, "r", encoding="utf-8") as file:
-            data = json.load(file)
-            if self._profile_id in data:
-                profile = data[self._profile_id]
-                self._name = profile.get("nome", "Unknown")
-                self._passive = profile.get("passiva", "None")
-                self._description = profile.get("descricao", "No data")
-            else:
-                self._name = "Rogue AI Override"
+        try:
+            with open("data/classes.json", "r", encoding="utf-8") as file:
+                classes = json.load(file)
+                profile = classes.get(self.profile_id, classes.get("1", {}))
+                self.name = profile.get("name", "Unknown Hacker")
+                self.passive = profile.get("passive", "none")
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.name = "Unknown Hacker"
+            self.passive = "none"
 
     def get_name(self):
-        return self._name
-        
+        return self.name
+
     def get_passive(self):
-        return self._passive
-        
+        return self.passive
+
     def get_combo(self):
-        return self._sync_combo
-        
+        return self.combo
+
     def add_combo(self, amount=1):
-        self._sync_combo += amount
-        
+        self.combo += amount
+
     def reset_combo(self):
-        self._sync_combo = 0
+        self.combo = 0
 
     def extract_data(self, item_name):
-        self._local_drive.append(item_name)
+        self.local_drive.append(item_name)
         
     def read_local_drive(self):
-        return self._local_drive
+        return self.local_drive
