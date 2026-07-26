@@ -2,16 +2,16 @@
   "1": {
     "nome": "Netrunner",
     "passiva": "clarividencia",
-    "descricao": "Revela partes do código encriptado (dicas) com combos altos."
+    "descricao": "Reveals parts of the encrypted code (hints) with high combos."
   },
   "2": {
     "nome": "Cyber-Enforcer",
     "passiva": "escudo",
-    "descricao": "Armadura reativa que bloqueia a primeira falha de injeção de código."
+    "descricao": "Reactive ICE armor that blocks the first code injection failure."
   },
   "3": {
     "nome": "Code-Breaker",
     "passiva": "critico",
-    "descricao": "Extrai o dobro de dados (Loot) sempre que neutraliza Malware."
+    "descricao": "Extracts double data (Loot) whenever Malware is neutralized."
   }
 }

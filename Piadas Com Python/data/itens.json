@@ -1,37 +1,20 @@
-[
-  {
-    "nome": "Dev Coffee",
-    "efeito": "cafe_dev",
-    "desc": "Instantly grants +2 Combo.",
-    "buff": "+2 Combo",
-    "debuff": "Risk of caffeine crash if you miss next time."
+{
+  "patch_ram": {
+    "nome": "Extended RAM Patch",
+    "descricao": "Stabilizes temporary memory after an attack.",
+    "efeito_buff": "Fills connection gaps.",
+    "efeito_debuff": "Disk fragmentation risk."
   },
-  {
-    "nome": "Inspection Scroll",
-    "efeito": "pergaminho",
-    "desc": "Reveals punchline character length.",
-    "buff": "Inspect punchline size",
-    "debuff": "Prevents using other items in the same turn."
+  "script_overclock": {
+    "nome": "Overclock Script",
+    "descricao": "Accelerates CPU to bypass ICE faster.",
+    "efeito_buff": "Temporarily increases bypass rate.",
+    "efeito_debuff": "Severe Cyber-Deck overheating."
   },
-  {
-    "nome": "Debug Potion",
-    "efeito": "pocao_debug",
-    "desc": "Protects against combo loss on the next error.",
-    "buff": "Combo Shield",
-    "debuff": "None."
-  },
-  {
-    "nome": "Garbage Collector Amulet",
-    "efeito": "garbage_collector",
-    "desc": "Deletes 3 junk jokes from SQLite database.",
-    "buff": "Purge junk from SQLite",
-    "debuff": "Pauses background thread for 1 turn."
-  },
-  {
-    "nome": "Fred's Cursed Relic",
-    "efeito": "reliquia_fred",
-    "desc": "Reveals first and last letter of the current punchline.",
-    "buff": "Reveal first & last letter",
-    "debuff": "Slightly increases plague download rate."
+  "virus_fragmentado": {
+    "nome": "Dormant Malware (Trojan)",
+    "descricao": "A dangerous piece of code extracted from the Rogue AI.",
+    "efeito_buff": "Can be used as a lethal countermeasure.",
+    "efeito_debuff": "Corrupts local files if mishandled."
   }
-]
+}
