@@ -1,110 +1,113 @@
 import sqlite3
 import pandas as pd
-import matplotlib.pyplot as plt
-import os
-from rich import print
+from rich.console import Console
+from rich.table import Table
+from modules.ui import print_header, print_success, print_error, print_warning
+
+console = Console()
 
 class DataScanner:
     """
-    Data Analysis module utilizing Pandas and Matplotlib.
-    Reads SQLite data, transforms it, and outputs a Cyberpunk anomaly radar.
+    Handles network packet scanning and renders a terminal-native 
+    anomaly radar directly in the CLI using Rich UI components.
     """
-    
     def __init__(self, db_path="data/network.db"):
         self.db_path = db_path
 
-    def generate_radar_scan(self, output_path="radar_scan.png"):
-        if not os.path.exists(self.db_path):
-            print("[bold #ff0055][SYSTEM FAULT] No network data found. Waiting for background thread...[/]")
-            return False
-
+    def generate_radar_scan(self):
         try:
             con = sqlite3.connect(self.db_path)
             
+            # --- FAILSAFE DE EMERGENCIA ---
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS noise_packets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    setup TEXT NOT NULL
+                )
+            """)
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS corrupted_nodes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    setup TEXT NOT NULL,
+                    punchline TEXT NOT NULL,
+                    threat_level TEXT DEFAULT 'NORMAL',
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
             query = """
-                SELECT * FROM (
-                    SELECT id, (LENGTH(setup) + LENGTH(punchline)) AS payload_size, threat_level
-                    FROM corrupted_nodes
-                    WHERE threat_level = 'CRITICAL'
-                    ORDER BY RANDOM()
-                    LIMIT 1
-                )
+                SELECT id, setup, 'NORMAL' as type FROM corrupted_nodes
                 UNION ALL
-                SELECT * FROM (
-                    SELECT id, (LENGTH(setup) + LENGTH(punchline)) AS payload_size, threat_level
-                    FROM corrupted_nodes
-                    WHERE threat_level = 'NORMAL'
-                    ORDER BY RANDOM()
-                    LIMIT 6
-                )
+                SELECT id, setup, 'NOISE' as type FROM noise_packets
             """
-            df = pd.read_sql_query(query, con)
+            df = pd.read_sql(query, con)
             con.close()
-
+            
             if df.empty:
-                print("[bold #fdf500][*] Network is currently clean. Awaiting Rogue AI packets...[/]")
-                return False
+                print_warning("Network radar empty. No packets intercepted yet.")
+                return
 
-            df = df.sample(frac=1).reset_index(drop=True)
-            df['node_label'] = "Node #" + df['id'].astype(str)
-            
-            plt.figure(figsize=(8, 4))
-            colors = ['#ff0055' if threat == 'CRITICAL' else '#00f0ff' for threat in df['threat_level']]
-            
-            plt.bar(df['node_label'], df['payload_size'], color=colors, edgecolor='black')
-            plt.title("NETWORK ANOMALY RADAR", fontsize=12, fontweight='bold', color='#00f0ff')
-            plt.xlabel("Corrupted Nodes")
-            plt.ylabel("Payload Size (Bytes)")
-            
-            plt.gca().set_facecolor('#121212')
-            plt.gcf().patch.set_facecolor('#121212')
-            plt.gca().tick_params(colors='white')
-            plt.gca().spines['bottom'].set_color('white')
-            plt.gca().spines['left'].set_color('white')
-            plt.tight_layout()
-            
-            plt.savefig(output_path, dpi=120, facecolor=plt.gcf().get_facecolor())
-            plt.close()
+            df['payload_size'] = df['setup'].apply(lambda x: len(str(x)) * 12)
 
-            print("\n[bold #00f0ff]📡 NETWORK SCAN COMPLETE...[/]")
-            print(f"[dim]Visual telemetry saved locally as '{output_path}' for audit[/]\n")
-            
+            console.clear()
+            print_header("FRED ANOMALY RADAR", "bold #00f0ff")
+            console.print("[dim]Scanning network frequencies and FRED packet payloads...[/dim]\n")
+
+            table = Table(show_header=True, header_style="bold #00ff00", border_style="dim #555555")
+            table.add_column("Node ID", style="bold #00f0ff", justify="center")
+            table.add_column("Type", justify="center")
+            table.add_column("Payload Preview", style="dim white")
+            table.add_column("Signal Density (Bytes)", justify="right")
+            table.add_column("Threat Level Bar", style="bold #ff0055")
+
+            max_size = df['payload_size'].max() if not df.empty else 1
+            if max_size == 0:
+                max_size = 1
+
             for _, row in df.iterrows():
-                if row['payload_size'] > 150:
-                    print(f"  [bold #ff0055]🚨 CRITICAL ROOTKIT DETECTED -> Node ID #{row['id']} ({row['payload_size']} bytes)[/]")
-                else:
-                    print(f"  [dim]✔️ Minor Malware -> Node ID #{row['id']} ({row['payload_size']} bytes)[/]")
+                normalized_size = row['payload_size']
+                bars_count = int((normalized_size / max_size) * 20)
+                bars_count = max(1, bars_count)
+                bar_graph = "#" * bars_count
+                
+                type_styled = "[bold #ff0055]NOISE[/]" if row['type'] == 'NOISE' else "[bold #00ff00]TARGET[/]"
+                
+                table.add_row(
+                    str(row['id']),
+                    type_styled,
+                    str(row['setup'][:35]) + "...",
+                    f"{row['payload_size']} B",
+                    bar_graph
+                )
 
-            return True
+            console.print(table)
+            console.print("\n[bold #00ff00][*] Scan complete. Identify the critical payload Node ID for Kernel Bypass.[/]")
 
         except Exception as e:
-            print(f"[bold #ff0055][CRITICAL ERROR] Scanner malfunction: {e}[/]")
-            return False
+            print_error(f"Radar scan failed: {e}")
 
     def bypass_kernel(self, target_id):
-        if not str(target_id).isdigit():
-            print("\n[bold #ff0055]❌ Syntax Error! ID input must be numeric.[/]")
-            return False
-
         try:
             con = sqlite3.connect(self.db_path)
             cursor = con.cursor()
             
-            cursor.execute("SELECT threat_level FROM corrupted_nodes WHERE id = ?", (target_id,))
-            res = cursor.fetchone()
-
-            if res and res[0] == "CRITICAL":
-                cursor.execute("DELETE FROM corrupted_nodes WHERE id = ?", (target_id,))
-                con.commit()
-                con.close()
-                print(f"\n💥 [bold #00ff00]OVERRIDE SUCCESS: Rootkit ID #{target_id} purged from SQLite![/]")
-                print("🟢 [bold #00ff00]BLACK ICE OFFLINE! Access to Node Debugging (Option 3) granted.[/]")
+            cursor.execute("SELECT id, setup FROM corrupted_nodes WHERE id = ?", (target_id,))
+            node = cursor.fetchone()
+            
+            cursor.execute("SELECT id FROM noise_packets WHERE id = ?", (target_id,))
+            noise = cursor.fetchone()
+            con.close()
+            
+            if node:
+                print_success(f"Node #{target_id} isolated. FRED Firewall bypassed successfully.")
                 return True
-            else:
-                con.close()
-                print(f"\n❌ [bold #ff0055]BYPASS FAILED: Node #{target_id} is not the Critical Rootkit. Run the scan again.[/]")
+            elif noise:
+                print_error(f"Node #{target_id} is standard network noise. Security lock engaged.")
                 return False
-
+            else:
+                print_error(f"Node ID #{target_id} not found in current sector.")
+                return False
+                
         except sqlite3.Error as e:
-            print(f"[bold #ff0055][SQLITE ERROR]: {e}[/]")
+            print_error(f"Database query error: {e}")
             return False
